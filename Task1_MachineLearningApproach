@@ -1,0 +1,57 @@
+#here is the original code:
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from warnings import simplefilter
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.model_selection import train_test_split
+
+simplefilter("ignore", category=ConvergenceWarning)
+
+# Load and preprocess data
+train = pd.read_csv('./train.csv')
+train['title'] = train['title'].fillna('')
+train['abstract'] = train['abstract'].fillna('')
+
+test = pd.read_csv('./testB.csv')
+test['title'] = test['title'].fillna('')
+test['abstract'] = test['abstract'].fillna('')
+
+stops = [i.strip() for i in open(r'.stop.txt', encoding='utf-8').readlines()]
+
+# Feature extraction and preprocessing
+train['text'] = train['title'].fillna('') + ' ' + train['author'].fillna('') + ' ' + train['abstract'].fillna('') + ' ' + train['Keywords'].fillna('')
+test['text'] = test['title'].fillna('') + ' ' + test['author'].fillna('') + ' ' + test['abstract'].fillna('')
+
+# Split the data into train and eval sets
+train_data, eval_data = train_test_split(train, test_size=0.2, random_state=42)
+
+# Feature engineering: using TfidfVectorizer
+vector = TfidfVectorizer(stop_words=stops).fit(train_data['text'])
+train_vector = vector.transform(train_data['text'])
+eval_vector = vector.transform(eval_data['text'])  # Use eval_data for evaluation
+test_vector = vector.transform(test['text'])  # Use test data for predictions
+
+# Model training
+model = LogisticRegression()
+
+# Training the model
+model.fit(train_vector, train_data['label'])
+
+# Predicting on the test data
+test_predictions = model.predict(test_vector)
+
+# Calculate accuracy on the evaluation data
+eval_predictions = model.predict(eval_vector)
+accuracy = (eval_predictions == eval_data['label']).mean()
+print("Accuracy on the evaluation set:", accuracy)
+
+# Save the predictions
+test['label'] = test_predictions
+test['Keywords'] = test['title'].fillna('')
+test[['uuid', 'Keywords', 'label']].to_csv('submit_task1.csv', index=None)
+#fin
+
+In writing this code, I combined the baseline code and the tutorial, both are provided by Datawhale.
+The main difference is as follows: firstly, I used TD-IDF instead of BOW to extract features; secondly, I used a stopwords list, which is also provided by Datawhale.
+After using these measures, my model accuracy is 0.9341666666666667, and my score given by the judge website is 0.7632, which is a little higher than the baseline model.
